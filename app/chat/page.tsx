@@ -61,7 +61,7 @@ export default function ChatPage() {
 
       <div className="chat-window">
         {messages.map((m, i) => (
-          <div key={i} className={`msg ${m.role}`}>
+          <div key={i} className={`msg msg-bubble ${m.role}`}>
             {m.content}
           </div>
         ))}
