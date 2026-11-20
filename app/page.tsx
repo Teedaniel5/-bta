@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+const WHATSAPP_URL = "https://wa.me/263786612844";
+
+const wa = (text: string) =>
+  `https://wa.me/263786612844?text=${encodeURIComponent(text)}`;
+
 const courses = [
   {
     title: "Forex Foundations",
@@ -15,22 +20,10 @@ const courses = [
   },
 ];
 
-const products = [
-  {
-    title: "BTA Sniper EA (MT4/MT5)",
-    body: "Expert advisor with built-in equity protection, session filters and configurable risk per trade.",
-    price: "$149",
-  },
-  {
-    title: "Liquidity Zones Indicator",
-    body: "Automatic order-block and liquidity-pool mapping so you stop guessing where price will react.",
-    price: "$59",
-  },
-  {
-    title: "Signal Membership",
-    body: "Daily trade setups with entry, stop loss and take profit, delivered straight to your phone.",
-    price: "$49/mo",
-  },
+const indicatorTiers = [
+  { label: "Monthly", price: "$50 / month" },
+  { label: "Yearly", price: "$100 / year" },
+  { label: "Lifetime", price: "$500 one-time" },
 ];
 
 export default function Home() {
@@ -43,11 +36,19 @@ export default function Home() {
         <p>
           We teach everyday people to trade forex with a plan — structured
           courses, professional signal services and battle-tested tools like
-          expert advisors and indicators.
+          our premium indicators.
         </p>
-        <Link className="cta" href="/chat">
-          Ask a Mentor — Free AI Chat
-        </Link>
+        <a
+          className="cta"
+          href={wa("Hello Brilliant Trading Academy! I'm interested in getting started.")}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Get Started on WhatsApp
+        </a>
+        <p className="hero-alt">
+          or <Link href="/chat">ask our AI mentor a question first</Link>
+        </p>
       </section>
 
       <section className="block">
@@ -65,13 +66,56 @@ export default function Home() {
       <section className="block">
         <h2>Signals &amp; Products</h2>
         <div className="cards">
-          {products.map((p) => (
-            <div className="card" key={p.title}>
-              <h3>{p.title}</h3>
-              <p>{p.body}</p>
-              <span className="price">{p.price}</span>
+          <div className="card">
+            <h3>Mr Euaggelion Pro v1 Indicator</h3>
+            <p>
+              Our powerful premium indicator for MT4/MT5 that gives clear buy
+              and sell signals, with trend filter and risk management built in.
+            </p>
+            <div className="tier-list">
+              {indicatorTiers.map((t) => (
+                <div className="tier" key={t.label}>
+                  <span className="tier-info">
+                    <strong>{t.label}</strong> · {t.price}
+                  </span>
+                  <a
+                    className="btn"
+                    href={wa(
+                      `Hello Brilliant Trading Academy! I want the Mr Euaggelion Pro v1 Indicator — ${t.label} plan (${t.price}).`
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Buy on WhatsApp
+                  </a>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="card">
+            <h3>Signal Membership</h3>
+            <p>
+              Daily trade setups with entry, stop loss and take profit,
+              delivered straight to your phone.
+            </p>
+            <div className="tier-list">
+              <div className="tier">
+                <span className="tier-info">
+                  <strong>Monthly</strong> · $15 / month
+                </span>
+                <a
+                  className="btn"
+                  href={wa(
+                    "Hello Brilliant Trading Academy! I want to join the Signal Membership ($15/month)."
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Buy on WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -95,10 +139,35 @@ export default function Home() {
           <div className="card">
             <h3>Tools That Work</h3>
             <p>
-              Our EAs and indicators are used on live accounts, not just
-              backtests.
+              Our indicators are used on live accounts, not just backtests.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="block">
+        <h2>Contact Us</h2>
+        <p className="contact-note">
+          Ready to start? Chat with us directly on WhatsApp — we usually reply
+          within hours. If the first line is busy, use the second number.
+        </p>
+        <div className="contact-list">
+          <a
+            className="btn"
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp: +263786612844
+          </a>
+          <a
+            className="btn"
+            href="https://wa.me/263774827123"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Second WhatsApp: +263774827123
+          </a>
         </div>
       </section>
     </>

@@ -1,6 +1,6 @@
 # Brilliant Trading Academy
 
-A minimal web app for **Brilliant Trading Academy** — forex trading education, signal services, and products like expert advisors (EAs) and indicators — with a built-in "Ask a Mentor" AI chat powered by the Mistral API.
+A minimal web app for **Brilliant Trading Academy** — forex trading education, signal services, and products like the Mr Euaggelion Pro v1 premium indicator — with a built-in "Ask a Mentor" AI chat powered by the Mistral API.
 
 Built with:
 

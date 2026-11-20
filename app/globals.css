@@ -118,6 +118,12 @@ a {
   background: var(--accent-dark);
 }
 
+.hero-alt {
+  color: var(--muted);
+  margin-top: 0.9rem;
+  font-size: 0.92rem;
+}
+
 section.block {
   margin: 2.5rem 0;
 }
@@ -155,6 +161,60 @@ section.block h2 {
   font-weight: 700;
   color: var(--accent);
   font-size: 1.05rem;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #04140a;
+  font-weight: 700;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--accent-dark);
+}
+
+.tier-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.tier:first-child {
+  border-top: none;
+}
+
+.tier-info {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.tier-info strong {
+  color: var(--text);
+}
+
+.contact-note {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.contact-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .site-footer {
