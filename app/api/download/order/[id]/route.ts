@@ -27,7 +27,8 @@ export async function GET(
   }
   const stat = statSync(filePath);
   const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
-  const safeName = String(order.title || "BTA_product").replace(/[^a-z0-9 ._-]/gi, "_");
+  const ext = (String(order.file_path).split(".").pop() || "bin").toLowerCase();
+  const safeName = `${String(order.title || "BTA_product").replace(/[^a-z0-9 ._-]/gi, "_")}_BTA.${ext}`;
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "application/octet-stream",

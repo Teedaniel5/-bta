@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { q } from "@/lib/db";
 import AdminNav from "../AdminNav";
+import UploadField from "@/components/UploadField";
 import ConfirmForm from "@/components/ConfirmForm";
 import {
   createProductAction,
@@ -58,14 +59,16 @@ export default async function AdminProducts({
             <textarea name="description" rows={3} />
           </label>
           <div className="grid grid-2">
-            <label className="field">
-              Cover image (jpg/png/webp)
-              <input name="cover" type="file" accept=".jpg,.jpeg,.png,.webp,.gif" />
-            </label>
-            <label className="field">
-              Product file (EX4, EX5, PDF, ZIP, MP4, PPT…)
-              <input name="file" type="file" />
-            </label>
+            <UploadField
+              name="cover"
+              accept=".jpg,.jpeg,.png,.webp,.gif"
+              label="Cover image (jpg/png/webp)"
+            />
+            <UploadField
+              name="file"
+              accept=".ex4,.ex5,.mq4,.mq5,.zip,.pdf,.ppt,.pptx,.mp4,.mp3,.jpg,.jpeg,.png,.webp,.txt,.xlsx,.doc,.docx"
+              label="Product file (EX4, EX5, PDF, ZIP, MP4, PPT… up to 100 MB)"
+            />
           </div>
           <button className="btn-gold-lg btn-lg" type="submit">
             Publish product
@@ -101,7 +104,7 @@ export default async function AdminProducts({
               {!!p.cover_path && <Image src={`/api/file/${String(p.cover_path)}`} alt="cover" width={60} height={40} style={{ borderRadius: 4 }} />}
               <span className="chip">{p.file_path ? "file uploaded" : "no file"}</span>
               <label className="field" style={{ flex: 1, minWidth: 220 }}>
-                Replace product file
+                Replace product file (or use Remove product file below)
                 <input name="file" type="file" />
               </label>
               <button className="btn green sm" type="submit">

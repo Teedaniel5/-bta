@@ -18,9 +18,7 @@ export default async function Signals() {
   ]);
   const staffUser = user ? isAdmin(user) || canManageSignals(user) : false;
   const level = vip ? "vip" : pro ? "pro" : staffUser ? "staff" : "free";
-  const visible = all.filter(
-    (s) => s.tier === "free" || level !== "free" || (user && false)
-  );
+
   const measured = closed.filter((s) => s.result === "win" || s.result === "loss" || s.result === "breakeven");
   const wins = measured.filter((s) => s.result === "win").length;
   const losses = measured.filter((s) => s.result === "loss").length;
@@ -115,7 +113,6 @@ export default async function Signals() {
 
       {groups.map(([title, list, tierKey]) => {
         const lockedForUser = !user && tierKey !== "free";
-        const showList = tierKey === "free" || level !== "free" || !user;
         return (
           <div className="panel" key={tierKey}>
             <h2>

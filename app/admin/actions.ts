@@ -13,6 +13,48 @@ import {
   type User,
 } from "@/lib/auth";
 import { PERIOD_DAYS } from "@/lib/access";
+import {
+  getBrokerConfig,
+  saveBrokerSettings,
+  testDerivConnection,
+  testWeltradeConnection,
+} from "@/lib/broker";
+
+export async function saveBrokerAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!isAdmin(user)) deny();
+  const entries: Record<string, string> = {};
+  for (const key of ["deriv_enabled", "weltrade_enabled"]) {
+    entries[key] = formData.get(key) ? "1" : "0";
+  }
+  for (const key of [
+    "deriv_app_id",
+    "deriv_api_token",
+    "weltrade_api_url",
+    "weltrade_login",
+    "weltrade_password",
+  ]) {
+    const value = String(formData.get(key) || "").trim();
+    if (value) entries[key] = value;
+  }
+  await saveBrokerSettings(entries);
+  revalidatePath("/admin/brokers");
+  redirect("/admin/brokers?ok=1");
+}
+
+export async function testBrokerAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!isAdmin(user)) deny();
+  const broker = String(formData.get("broker") || "deriv");
+  const result =
+    broker === "weltrade" ? await testWeltradeConnection() : await testDerivConnection();
+  const stamp = new Date().toISOString().slice(0, 19).replace("T", " ") + " UTC";
+  await saveBrokerSettings({
+    [`${broker}_status`]: `${result.ok ? "OK" : "FAILED"} at ${stamp} — ${result.detail}`,
+  });
+  revalidatePath("/admin/brokers");
+  redirect(`/admin/brokers?tested=${broker}&result=${result.ok ? 1 : 0}`);
+}
 
 async function staff(): Promise<User> {
   const user = await getSessionUser();
@@ -25,7 +67,10 @@ function deny(): never {
 }
 
 async function adminUpload(value: FormDataEntryValue | null): Promise<string | null> {
-  return saveUpload(value, ADMIN_EXTS);
+  const viaServer = await saveUpload(value, ADMIN_EXTS);
+  if (viaServer) return viaServer;
+  if (typeof value === "string" && value) return value;
+  return null;
 }
 
 export async function createProductAction(formData: FormData): Promise<void> {

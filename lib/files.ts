@@ -29,7 +29,7 @@ export const ADMIN_EXTS = [
   "set",
   "dll",
 ];
-const MAX_SIZE = 25 * 1024 * 1024;
+const MAX_SIZE = 100 * 1024 * 1024;
 
 export async function saveUpload(
   file: FormDataEntryValue | null,

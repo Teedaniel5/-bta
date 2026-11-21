@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { one, q } from "@/lib/db";
 import AdminNav from "../AdminNav";
+import UploadField from "@/components/UploadField";
 import ConfirmForm from "@/components/ConfirmForm";
 import {
   addLessonAction,
@@ -212,10 +213,11 @@ export default async function AdminCourses({
                   Video URL (optional)
                   <input name="videoUrl" type="url" placeholder="https://youtube.com/..." />
                 </label>
-                <label className="field">
-                  Upload material (PPT, PDF, MP4, MP3, ZIP…)
-                  <input name="file" type="file" />
-                </label>
+                <UploadField
+                  name="file"
+                  accept=".ppt,.pptx,.pdf,.mp4,.mp3,.jpg,.jpeg,.png,.webp,.zip,.doc,.docx,.txt,.xlsx"
+                  label="Upload material (PPT, PDF, MP4, MP3, ZIP… up to 100 MB)"
+                />
               </div>
               <button className="btn-gold-lg btn-lg" type="submit">
                 Add lesson

@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { one, q, run } from "@/lib/db";
+import { one, run } from "@/lib/db";
 import {
   createSession,
   destroySession,
@@ -96,6 +96,14 @@ export async function buyAction(formData: FormData): Promise<void> {
     if (!product) redirect("/store");
     const existing = await hasProduct(user, itemId);
     if (existing) redirect("/library");
+    if (Number(product.price) === 0) {
+      await run(
+        `INSERT INTO orders (user_id, item_type, item_id, description, amount, status, approved_at) VALUES (?, 'product', ?, ?, 0, 'approved', datetime('now'))`,
+        [user.id as number, itemId, product.title as string]
+      );
+      revalidatePath("/library");
+      redirect("/library?ok=1");
+    }
     await run(
       `INSERT INTO orders (user_id, item_type, item_id, description, amount) VALUES (?, 'product', ?, ?, ?)`,
       [user.id as number, itemId, product.title as string, product.price as number]
@@ -103,6 +111,18 @@ export async function buyAction(formData: FormData): Promise<void> {
   } else if (itemType === "course") {
     const course = await one(`SELECT * FROM courses WHERE id = ? AND published = 1`, [itemId]);
     if (!course) redirect("/courses");
+    if (Number(course.price) === 0) {
+      const enrolled = await one(`SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?`, [user.id as number, itemId]);
+      if (!enrolled) {
+        await run(`INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)`, [user.id as number, itemId]);
+      }
+      await run(
+        `INSERT INTO orders (user_id, item_type, item_id, description, amount, status, approved_at) VALUES (?, 'course', ?, ?, 0, 'approved', datetime('now'))`,
+        [user.id as number, itemId, course.title as string]
+      );
+      revalidatePath(`/courses/${itemId}`);
+      redirect(`/courses/${itemId}?ok=1`);
+    }
     await run(
       `INSERT INTO orders (user_id, item_type, item_id, description, amount) VALUES (?, 'course', ?, ?, ?)`,
       [user.id as number, itemId, course.title as string, course.price as number]
