@@ -1,97 +1,86 @@
+import { GoogleGenAI } from "@google/genai";
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest"];
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 
-async function readError(res: Response): Promise<string> {
-  try {
-    const data = (await res.json()) as { error?: { message?: string; status?: string } };
-    if (data.error?.message) return `${res.status}: ${data.error.message}`;
-  } catch {}
-  return `HTTP ${res.status}`;
-}
-
 export class AiError extends Error {}
 
+function describeError(error: unknown): string {
+  if (error instanceof AiError) return error.message;
+  const anyErr = error as { message?: string; code?: number; status?: string };
+  const parts = [anyErr?.status, anyErr?.code != null ? `HTTP ${anyErr.code}` : null, anyErr?.message].filter(Boolean);
+  return parts.join(" — ") || String(error);
+}
+
 async function callGeminiModel(
-  apiKey: string,
+  client: GoogleGenAI,
   model: string,
   system: string,
   messages: ChatMessage[]
 ): Promise<string> {
-  const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: system }] },
-      contents: messages.map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: { temperature: 0.6, maxOutputTokens: 1200 },
-    }),
-    signal: AbortSignal.timeout(45000),
+  const response = await client.models.generateContent({
+    model,
+    contents: messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    config: {
+      systemInstruction: system,
+      temperature: 0.6,
+      maxOutputTokens: 1200,
+    },
   });
-  if (!res.ok) {
-    const detail = await readError(res);
-    if (/API key not valid|PERMISSION_DENIED/i.test(detail)) {
-      throw new AiError(`Your GEMINI_API_KEY was rejected — ${detail}`);
-    }
-    throw new AiError(detail);
-  }
-  const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const text = parts.map((p) => p.text ?? "").join("").trim();
+  const text = (response.text ?? "").trim();
   if (!text) throw new AiError("Gemini returned an empty response");
   return text;
 }
 
-async function discoverGeminiModel(apiKey: string): Promise<string | null> {
+async function discoverGeminiModel(client: GoogleGenAI): Promise<string | null> {
   try {
-    const res = await fetch(`${GEMINI_BASE}/models?pageSize=200`, {
-      headers: { "x-goog-api-key": apiKey },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      models?: { name?: string; supportedGenerationMethods?: string[] }[];
-    };
-    const usable = (data.models ?? [])
-      .filter(
-        (m) =>
-          (m.supportedGenerationMethods ?? []).includes("generateContent") &&
-          !/embedding|aqa|image|tts|audio/i.test(String(m.name))
-      )
-      .map((m) => String(m.name).replace(/^models\//, ""));
-    return (
-      usable.find((n) => n.includes("flash") && !/lite|thinking/i.test(n)) ??
-      usable.find((n) => !/pro/i.test(n)) ??
-      usable[0] ??
-      null
-    );
+    let candidate: string | null = null;
+    const pager = await client.models.list({ config: { pageSize: 200 } });
+    for await (const model of pager) {
+      const name = String(model.name ?? "").replace(/^models\//, "");
+      const actions = (model as { supportedActions?: string[] }).supportedActions ?? [];
+      if (!actions.includes("generateContent")) continue;
+      if (/embedding|aqa|image|tts|audio|vision|video/i.test(name)) continue;
+      if (name.includes("flash") && !/lite|thinking/i.test(name)) return name;
+      if (!candidate && !/pro/i.test(name)) candidate = name;
+    }
+    return candidate;
   } catch {
     return null;
   }
 }
 
 async function callGemini(apiKey: string, system: string, messages: ChatMessage[]): Promise<string> {
+  const client = new GoogleGenAI({ apiKey });
   let lastError = "";
   for (const model of GEMINI_MODELS) {
     try {
-      return await callGeminiModel(apiKey, model, system, messages);
+      return await callGeminiModel(client, model, system, messages);
     } catch (error) {
-      const message = String((error as Error).message || error);
-      if (error instanceof AiError && /rejected|empty response/.test(message)) throw error;
+      const message = describeError(error);
+      console.error(`Gemini ${model} failed:`, message);
+      if (error instanceof AiError && error.message === "Gemini returned an empty response") throw error;
+      if (/API key not valid|PERMISSION_DENIED|API_KEY_INVALID|UNAUTHENTICATED/i.test(message)) {
+        throw new AiError(`Your GEMINI_API_KEY was rejected — ${message}`);
+      }
       lastError = message;
     }
   }
-  const fallbackModel = await discoverGeminiModel(apiKey);
+  const fallbackModel = await discoverGeminiModel(client);
   if (fallbackModel && !GEMINI_MODELS.includes(fallbackModel)) {
-    return callGeminiModel(apiKey, fallbackModel, system, messages);
+    console.error("Falling back to discovered Gemini model:", fallbackModel);
+    try {
+      return await callGeminiModel(client, fallbackModel, system, messages);
+    } catch (error) {
+      console.error("Gemini fallback model also failed:", describeError(error));
+      throw new AiError(describeError(error));
+    }
   }
   throw new AiError(lastError || "Gemini request failed");
 }
@@ -111,7 +100,12 @@ async function callGroq(apiKey: string, system: string, messages: ChatMessage[])
       signal: AbortSignal.timeout(45000),
     });
     if (!res.ok) {
-      const detail = await readError(res);
+      let detail = `HTTP ${res.status}`;
+      try {
+        const data = (await res.json()) as { error?: { message?: string } };
+        if (data.error?.message) detail = `${res.status}: ${data.error.message}`;
+      } catch {}
+      console.error(`Groq ${model} failed:`, detail);
       if (res.status === 401) {
         throw new AiError(`Your GROQ_API_KEY was rejected — ${detail}`);
       }
