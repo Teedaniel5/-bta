@@ -13,7 +13,7 @@ export default async function Dashboard() {
   const [level, subs, products, courses, payments, notifs, activity] = await Promise.all([
     membershipLevel(user),
     activeSubscriptions(uid),
-    q(`SELECT p.title, p.id FROM orders o JOIN products p ON p.id = o.item_id WHERE o.user_id = ? AND o.item_type = 'product' AND o.status = 'approved'`, [uid]),
+    q(`SELECT COALESCE(p.title, 'Product removed by admin') AS title, o.id FROM orders o LEFT JOIN products p ON p.id = o.item_id WHERE o.user_id = ? AND o.item_type = 'product' AND o.status = 'approved'`, [uid]),
     q(`SELECT c.title, c.id FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ?`, [uid]),
     q(`SELECT * FROM orders WHERE user_id = ? AND status = 'approved' ORDER BY approved_at DESC LIMIT 5`, [uid]),
     q(`SELECT * FROM notifications WHERE user_id = ? OR user_id IS NULL ORDER BY id DESC LIMIT 12`, [uid]),

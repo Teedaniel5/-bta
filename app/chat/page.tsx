@@ -7,7 +7,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    "Welcome to Brilliant Trading Academy! I can explain forex basics, our courses, signal membership, and our EAs and indicators. What would you like to know?",
+    "Welcome to Brilliant Trading Academy! I can explain forex basics, our courses, signal membership, and our premium indicator. What would you like to know?",
 };
 
 export default function ChatPage() {

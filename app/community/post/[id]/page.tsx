@@ -3,7 +3,8 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { one, q } from "@/lib/db";
 import { likeAction, replyAction } from "@/app/actions";
-import { moderateAction } from "@/app/admin/actions";
+import { deleteUploadAction, moderateAction } from "@/app/admin/actions";
+import ConfirmForm from "@/components/ConfirmForm";
 import { getSessionUser, canModerate } from "@/lib/auth";
 import { canAccessRoom } from "@/lib/access";
 import { timeAgo } from "@/lib/files";
@@ -73,14 +74,20 @@ export default async function PostPage({
               </button>
             </form>
           )}
+          {staff && !!post.image_path && (
+            <ConfirmForm
+              action={deleteUploadAction}
+              fields={{ target: "post_image", id: String(post.id) }}
+              label="Remove chart image"
+              className="btn outline sm"
+            />
+          )}
           {staff && (
-            <form action={moderateAction}>
-              <input type="hidden" name="op" value="delete_post" />
-              <input type="hidden" name="id" value={String(id)} />
-              <button className="btn danger sm" type="submit">
-                Delete post
-              </button>
-            </form>
+            <ConfirmForm
+              action={moderateAction}
+              fields={{ id: String(id), op: "delete_post" }}
+              label="Delete post"
+            />
           )}
         </div>
       </div>
@@ -94,13 +101,11 @@ export default async function PostPage({
             <span style={{ color: "var(--muted)", fontSize: "0.75rem" }}>{timeAgo(r.created_at)}</span>
             <p style={{ color: "var(--ink)", fontSize: "0.92rem", whiteSpace: "pre-wrap" }}>{String(r.body)}</p>
             {mod && (
-              <form action={moderateAction} style={{ marginTop: "0.3rem" }}>
-                <input type="hidden" name="op" value="delete_reply" />
-                <input type="hidden" name="id" value={String(r.id)} />
-                <button className="btn danger sm" type="submit">
-                  Delete
-                </button>
-              </form>
+              <ConfirmForm
+                action={moderateAction}
+                fields={{ id: String(r.id), op: "delete_reply" }}
+                label="Delete"
+              />
             )}
           </div>
         ))}

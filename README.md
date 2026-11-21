@@ -3,7 +3,7 @@
 A full forex education & trading technology platform: **Learn, Trade, Buy, Sell, Connect, Grow.**
 Tagline: **Treasures in Hidden Places.**
 
-Built with Next.js (App Router) + TypeScript, the official Mistral SDK (`@mistralai/mistralai`, model `mistral-small-latest`), and an SQL database via `@libsql/client` (local SQLite file by default, hosted libSQL/Turso in production).
+Built with Next.js (App Router) + TypeScript, a free AI provider (Google Gemini or Groq, via plain REST — no SDK), and an SQL database via `@libsql/client` (local SQLite file by default, hosted libSQL/Turso in production).
 
 ## Features
 
@@ -21,7 +21,7 @@ Built with Next.js (App Router) + TypeScript, the official Mistral SDK (`@mistra
 - **Member dashboard**: membership level, active subscriptions with expiry, purchases, courses, community activity, notifications, payment history.
 - **Notifications**: in-app notification centre; new signals, signal closures, payment approvals/rejections, replies, new resources all generate notifications.
 - **Admin analytics**: registered members, active subscribers, total/monthly revenue, membership distribution, enrolments, signal counts — all computed from live database records.
-- **AI Mentor (`/chat`)**: retained Mistral-powered chat, keys stay server-side.
+- **AI Mentor (`/chat`)**: free AI chat (Gemini first, Groq fallback), keys stay server-side. When brokers are enabled in the admin panel it also receives live market data (prices/candles) from Deriv and cites the source, current price and timeframe; if no broker is connected it clearly says live data is unavailable instead of guessing.
 - **SEO**: per-page titles/descriptions, Open Graph with logo, WhatsApp CTAs throughout.
 
 ## Getting started
@@ -38,7 +38,7 @@ npm install
 cp .env.example .env.local
 ```
 
-- `MISTRAL_API_KEY` — from [console.mistral.ai](https://console.mistral.ai/api-keys) (used by the AI Mentor).
+- `GEMINI_API_KEY` — free from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (AI Mentor). Or set `GROQ_API_KEY` from [console.groq.com/keys](https://console.groq.com/keys) instead — both have free tiers.
 - `DATABASE_URL` — optional; defaults to local SQLite `data/bta.db`. For production use a hosted libSQL/Turso URL + `DATABASE_AUTH_TOKEN` (a file database on Vercel is ephemeral).
 - `SUPER_ADMIN_EMAIL` — the account registered with this email becomes Super Administrator; otherwise the **first account ever registered** becomes Super Admin.
 

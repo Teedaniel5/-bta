@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { getSessionUser, isAdmin } from "@/lib/auth";
-import { membershipLevel } from "@/lib/access";
 import { logoutAction } from "./actions";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -47,7 +46,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
-  const level = user ? await membershipLevel(user) : null;
 
   return (
     <html lang="en" className={`${inter.variable} ${display.variable}`}>

@@ -13,6 +13,7 @@ export default async function AdminNav() {
     ["/admin/community", "Community"],
     ["/admin/resources", "Resources"],
     ["/admin/messages", "Messages"],
+    ["/admin/brokers", "Broker APIs"],
     ["/admin/settings", "Settings"],
   ];
   return (

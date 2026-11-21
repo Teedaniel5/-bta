@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { one, q } from "@/lib/db";
 import AdminNav from "../AdminNav";
+import UploadField from "@/components/UploadField";
+import ConfirmForm from "@/components/ConfirmForm";
 import {
   addLessonAction,
   addModuleAction,
   createCourseAction,
+  deleteCourseAction,
   deleteLessonAction,
+  deleteModuleAction,
+  deleteUploadAction,
 } from "../actions";
 
 export const metadata = { title: "Admin — Courses" };
@@ -106,7 +111,10 @@ export default async function AdminCourses({
                   <td>{String(c.title)}</td>
                   <td>${String(c.price)}</td>
                   <td><span className={`chip ${c.published ? "green" : ""}`}>{c.published ? "live" : "draft"}</span></td>
-                  <td><Link className="btn outline sm" href={`/admin/courses?course=${c.id}`}>Manage lessons</Link></td>
+                  <td style={{ display: "flex", gap: "0.4rem" }}>
+                    <Link className="btn outline sm" href={`/admin/courses?course=${c.id}`}>Manage lessons</Link>
+                    <ConfirmForm action={deleteCourseAction} fields={{ id: String(c.id) }} label="Delete course" />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -121,6 +129,14 @@ export default async function AdminCourses({
             <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
               {enrolled.length} enrolled students{enrolled.length > 0 && ": " + enrolled.map((e) => String(e.name)).slice(0, 8).join(", ")}
             </p>
+            {!!selected.cover_path && (
+              <ConfirmForm
+                action={deleteUploadAction}
+                fields={{ target: "course_cover", id: String(selectedId) }}
+                label="Remove cover image"
+                className="btn outline sm"
+              />
+            )}
             <form className="stack" action={addModuleAction} style={{ marginTop: "1rem", maxWidth: 480 }}>
               <input type="hidden" name="courseId" value={selectedId} />
               <label className="field">
@@ -137,7 +153,14 @@ export default async function AdminCourses({
             <h2>Curriculum ({modules.length} modules, {lessons.length} lessons)</h2>
             {modules.map((m) => (
               <div key={String(m.id)} style={{ marginBottom: "1rem" }}>
-                <b style={{ color: "var(--gold-light)" }}>{String(m.title)}</b>
+                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
+                  <b style={{ color: "var(--gold-light)"}}>{String(m.title)}</b>
+                  <ConfirmForm
+                    action={deleteModuleAction}
+                    fields={{ id: String(m.id), courseId: String(selectedId) }}
+                    label="Delete module"
+                  />
+                </div>
                 {lessons.filter((l) => Number(l.module_id) === Number(m.id)).length === 0 && (
                   <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>No lessons yet.</p>
                 )}
@@ -150,13 +173,11 @@ export default async function AdminCourses({
                         {l.file_path ? " · has file" : ""}
                         {l.video_url ? " · has video" : ""}
                       </span>
-                      <form action={deleteLessonAction}>
-                        <input type="hidden" name="id" value={String(l.id)} />
-                        <input type="hidden" name="courseId" value={selectedId} />
-                        <button className="btn danger sm" type="submit">
-                          Delete
-                        </button>
-                      </form>
+                      <ConfirmForm
+                        action={deleteLessonAction}
+                        fields={{ id: String(l.id), courseId: String(selectedId) }}
+                        label="Delete"
+                      />
                     </div>
                   ))}
               </div>
@@ -192,10 +213,11 @@ export default async function AdminCourses({
                   Video URL (optional)
                   <input name="videoUrl" type="url" placeholder="https://youtube.com/..." />
                 </label>
-                <label className="field">
-                  Upload material (PPT, PDF, MP4, MP3, ZIP…)
-                  <input name="file" type="file" />
-                </label>
+                <UploadField
+                  name="file"
+                  accept=".ppt,.pptx,.pdf,.mp4,.mp3,.jpg,.jpeg,.png,.webp,.zip,.doc,.docx,.txt,.xlsx"
+                  label="Upload material (PPT, PDF, MP4, MP3, ZIP… up to 100 MB)"
+                />
               </div>
               <button className="btn-gold-lg btn-lg" type="submit">
                 Add lesson

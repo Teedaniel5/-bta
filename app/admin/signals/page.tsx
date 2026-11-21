@@ -1,6 +1,7 @@
 import { q } from "@/lib/db";
 import AdminNav from "../AdminNav";
-import { publishSignalAction, updateSignalAction } from "../actions";
+import ConfirmForm from "@/components/ConfirmForm";
+import { deleteSignalAction, publishSignalAction, updateSignalAction } from "../actions";
 import { fmtDate, timeAgo } from "@/lib/files";
 
 export const metadata = { title: "Admin — Signals" };
@@ -139,6 +140,7 @@ export default async function AdminSignals({
                         Update
                       </button>
                     </form>
+                    <ConfirmForm action={deleteSignalAction} fields={{ id: String(s.id) }} label="Delete" />
                   </td>
                 </tr>
               ))}

@@ -16,7 +16,7 @@ export default async function Library({
   const sp = await searchParams;
   const uid = user.id as number;
   const [purchases, subs, orders, enrolled] = await Promise.all([
-    q(`SELECT o.*, p.title, p.file_path FROM orders o JOIN products p ON p.id = o.item_id WHERE o.user_id = ? AND o.item_type = 'product' AND o.status = 'approved'`, [uid]),
+    q(`SELECT o.*, p.file_path, COALESCE(p.title, 'Product removed by admin') AS title, CASE WHEN p.id IS NULL THEN 1 ELSE 0 END AS removed FROM orders o LEFT JOIN products p ON p.id = o.item_id WHERE o.user_id = ? AND o.item_type = 'product' AND o.status = 'approved'`, [uid]),
     q(`SELECT * FROM subscriptions WHERE user_id = ? ORDER BY id DESC`, [uid]),
     q(`SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT 20`, [uid]),
     q(`SELECT c.* FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ?`, [uid]),
@@ -63,7 +63,9 @@ export default async function Library({
         {purchases.map((p) => (
           <div className="tier" key={String(p.id)}>
             <span className="tier-info"><strong>{String(p.title)}</strong></span>
-            {p.file_path ? (
+            {p.removed ? (
+              <span className="chip amber">No longer available</span>
+            ) : p.file_path ? (
               <a className="btn green sm" href={`/api/download/order/${String(p.id)}`}>
                 Secure download
               </a>

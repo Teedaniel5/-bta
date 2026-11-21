@@ -5,7 +5,13 @@
 1. Push this branch / merge the PR to `main`.
 2. On [vercel.com](https://vercel.com) → **Add New → Project** → import `Teedaniel5/testingg`.
 3. Environment variables (Project → Settings → Environment Variables):
-   - `MISTRAL_API_KEY` — your Mistral key (server-side only).
+   - `GEMINI_API_KEY` — free Gemini key from <https://aistudio.google.com/apikey> (AI Mentor). Free alternative: `GROQ_API_KEY` from <https://console.groq.com/keys>. No card required for either free tier.
+   - Vercel **Deployment Protection must be OFF**: Project → Settings → Deployment Protection → disable "Vercel Authentication" (and any password/SAML protection), so anyone can open the site without logging into Vercel.
+
+### Broker APIs (Admin → Broker APIs)
+- **Deriv**: create a free app at <https://api.deriv.com> to get an App ID (or use test app id `1089`), optionally create an API token in your Deriv account (gives account balance). Paste in Admin → Broker APIs, tick **Deriv enabled**, then press **Test Deriv connection**. Used by the AI mentor for live forex/gold prices (H1 candles) via the Deriv WebSocket API.
+- **Weltrade**: Weltrade accounts are MT4/MT5 and have no public market-data REST API. If Weltrade support provides a MetaTrader WebAPI endpoint, enter its URL + MT4/MT5 login/password; otherwise keep Weltrade OFF — the AI automatically uses Deriv for live data and says so.
+- Keys are stored in the server database, masked in the admin UI, and never exposed to students.
    - `DATABASE_URL` + `DATABASE_AUTH_TOKEN` — a hosted libSQL DB (see below). Do **not** skip this: the Vercel filesystem is ephemeral and a file SQLite would be reset between requests.
    - `SUPER_ADMIN_EMAIL` — the email you will register with.
 4. Deploy, then open the site and **Register first** with the super admin email.

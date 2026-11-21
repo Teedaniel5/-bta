@@ -1,7 +1,8 @@
-import { Mistral } from "@mistralai/mistralai";
 import { NextResponse } from "next/server";
+import { chatComplete } from "@/lib/ai";
+import { buildMarketContext, getMarketSnapshot, parseSymbols } from "@/lib/broker";
 
-const SYSTEM_PROMPT = `You are the AI mentor for Brilliant Trading Academy (BTA), a forex trading academy.
+const BASE_SYSTEM = `You are the AI mentor for Brilliant Trading Academy (BTA), a forex trading academy.
 You help students learn forex trading, answer questions about our services, and explain our products.
 
 What we offer:
@@ -19,14 +20,6 @@ Guidelines:
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export async function POST(request: Request) {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "MISTRAL_API_KEY is not configured on the server." },
-      { status: 500 }
-    );
-  }
-
   let messages: ChatMessage[];
   try {
     const body = await request.json();
@@ -47,30 +40,29 @@ export async function POST(request: Request) {
         m.content.trim() === ""
     )
   ) {
-    return NextResponse.json(
-      { error: "Request must include 1-24 user/assistant messages." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Request must include 1-24 user/assistant messages." }, { status: 400 });
   }
 
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  const symbols = parseSymbols(lastUser?.content ?? "");
+  const snapshot = await getMarketSnapshot(symbols);
+  const system = `${BASE_SYSTEM}\n\n${buildMarketContext(snapshot)}`;
+
   try {
-    const client = new Mistral({ apiKey });
-    const response = await client.chat.complete({
-      model: "mistral-small-latest",
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-    });
-
-    const content = response.choices?.[0]?.message?.content;
-    const reply =
-      typeof content === "string"
-        ? content
-        : (content ?? [])
-            .map((part) => (part.type === "text" ? (part.text ?? "") : ""))
-            .join("");
-
+    const reply = await chatComplete(system, messages);
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error("Mistral API error:", error);
+    const message = String((error as Error).message || error);
+    console.error("AI provider error:", message);
+    if (message === "NO_AI_KEY") {
+      return NextResponse.json(
+        {
+          error:
+            "The AI mentor is not configured yet. The site owner needs to add a free GEMINI_API_KEY (or GROQ_API_KEY) in the server environment variables.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       { error: "The assistant is unavailable right now. Please try again." },
       { status: 502 }

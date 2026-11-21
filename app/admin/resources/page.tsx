@@ -1,6 +1,7 @@
 import { q } from "@/lib/db";
 import AdminNav from "../AdminNav";
-import { createResourceAction, deleteResourceAction } from "../actions";
+import ConfirmForm from "@/components/ConfirmForm";
+import { createResourceAction, deleteResourceAction, deleteUploadAction } from "../actions";
 import { fmtDate } from "@/lib/files";
 
 export const metadata = { title: "Admin — Resources" };
@@ -62,13 +63,19 @@ export default async function AdminResources({
           <div className="tier" key={String(r.id)}>
             <span className="tier-info">
               <strong>{String(r.title)}</strong> · {String(r.type)} · {fmtDate(r.created_at)}
+              {r.file_path ? " · attachment" : ""}
             </span>
-            <form action={deleteResourceAction}>
-              <input type="hidden" name="id" value={String(r.id)} />
-              <button className="btn danger sm" type="submit">
-                Delete
-              </button>
-            </form>
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              {!!r.file_path && (
+                <ConfirmForm
+                  action={deleteUploadAction}
+                  fields={{ target: "resource_file", id: String(r.id) }}
+                  label="Remove attachment"
+                  className="btn outline sm"
+                />
+              )}
+              <ConfirmForm action={deleteResourceAction} fields={{ id: String(r.id) }} label="Delete" />
+            </div>
           </div>
         ))}
       </div>
