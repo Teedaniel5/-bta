@@ -7,7 +7,7 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    "Welcome to Brilliant Trading Academy! I can explain forex basics, our courses, signal membership, and our EAs and indicators. What would you like to know?",
+    "Welcome to Brilliant Trading Academy! I can explain forex basics, our courses, signal membership, and our premium indicator. What would you like to know?",
 };
 
 export default function ChatPage() {
@@ -61,7 +61,7 @@ export default function ChatPage() {
 
       <div className="chat-window">
         {messages.map((m, i) => (
-          <div key={i} className={`msg ${m.role}`}>
+          <div key={i} className={`msg msg-bubble ${m.role}`}>
             {m.content}
           </div>
         ))}
