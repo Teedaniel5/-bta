@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { q, run, type Row } from "./db";
 
@@ -44,6 +44,14 @@ export async function saveUpload(
   const name = `${Date.now()}-${randomBytes(8).toString("hex")}.${ext}`;
   await writeFile(path.join(UPLOAD_DIR, name), Buffer.from(await f.arrayBuffer()));
   return name;
+}
+
+export async function unlinkUpload(name: unknown): Promise<void> {
+  const raw = String(name || "");
+  if (!raw || !/^[a-z0-9-]+\.[a-z0-9]+$/i.test(raw)) return;
+  const target = path.resolve(UPLOAD_DIR, raw);
+  if (!target.startsWith(UPLOAD_DIR + path.sep)) return;
+  await unlink(target).catch(() => {});
 }
 
 export async function notify(

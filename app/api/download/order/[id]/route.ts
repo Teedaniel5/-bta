@@ -14,7 +14,7 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   const order = await one(
-    `SELECT o.*, p.file_path, p.title FROM orders o JOIN products p ON p.id = o.item_id
+    `SELECT o.*, p.file_path, p.title FROM orders o LEFT JOIN products p ON p.id = o.item_id
      WHERE o.id = ? AND o.user_id = ? AND o.item_type = 'product' AND o.status = 'approved'`,
     [Number(id), user.id as number]
   );
@@ -27,7 +27,7 @@ export async function GET(
   }
   const stat = statSync(filePath);
   const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
-  const safeName = String(order.title).replace(/[^a-z0-9 ._-]/gi, "_");
+  const safeName = String(order.title || "BTA_product").replace(/[^a-z0-9 ._-]/gi, "_");
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "application/octet-stream",

@@ -1,11 +1,9 @@
 "use server";
 
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { one, run } from "@/lib/db";
-import { ADMIN_EXTS, UPLOAD_DIR, notify, saveUpload } from "@/lib/files";
+import { one, q, run } from "@/lib/db";
+import { ADMIN_EXTS, notify, saveUpload, unlinkUpload } from "@/lib/files";
 import {
   isAdmin,
   canManageCourses,
@@ -60,7 +58,7 @@ export async function updateProductAction(formData: FormData): Promise<void> {
   const file = await adminUpload(formData.get("file"));
   if (file) {
     const old = await one(`SELECT file_path FROM products WHERE id = ?`, [id]);
-    if (old?.file_path) await unlink(path.join(UPLOAD_DIR, old.file_path as string)).catch(() => {});
+    await unlinkUpload(old?.file_path);
     await run(`UPDATE products SET file_path = ? WHERE id = ?`, [file, id]);
   }
   await run(
@@ -202,10 +200,103 @@ export async function deleteLessonAction(formData: FormData): Promise<void> {
   if (!canManageCourses(user)) deny();
   const id = Number(formData.get("id"));
   const courseId = Number(formData.get("courseId"));
+  const lesson = await one(`SELECT file_path FROM lessons WHERE id = ?`, [id]);
+  await unlinkUpload(lesson?.file_path);
   await run(`DELETE FROM lesson_progress WHERE lesson_id = ?`, [id]);
   await run(`DELETE FROM lessons WHERE id = ?`, [id]);
   revalidatePath("/admin/courses");
   redirect(`/admin/courses?course=${courseId}`);
+}
+
+export async function deleteModuleAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!canManageCourses(user)) deny();
+  const id = Number(formData.get("id"));
+  const courseId = Number(formData.get("courseId"));
+  const lessons = await q(`SELECT id, file_path FROM lessons WHERE module_id = ?`, [id]);
+  for (const l of lessons) await unlinkUpload(l.file_path);
+  for (const l of lessons)
+    await run(`DELETE FROM lesson_progress WHERE lesson_id = ?`, [l.id as number]);
+  await run(`DELETE FROM lessons WHERE module_id = ?`, [id]);
+  await run(`DELETE FROM modules WHERE id = ?`, [id]);
+  revalidatePath("/admin/courses");
+  redirect(`/admin/courses?course=${courseId}`);
+}
+
+export async function deleteCourseAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!canManageCourses(user)) deny();
+  const id = Number(formData.get("id"));
+  const course = await one(`SELECT cover_path FROM courses WHERE id = ?`, [id]);
+  const lessons = await q(
+    `SELECT l.id, l.file_path FROM lessons l JOIN modules m ON m.id = l.module_id WHERE m.course_id = ?`,
+    [id]
+  );
+  for (const l of lessons) await unlinkUpload(l.file_path);
+  for (const l of lessons)
+    await run(`DELETE FROM lesson_progress WHERE lesson_id = ?`, [l.id as number]);
+  await unlinkUpload(course?.cover_path);
+  await run(
+    `DELETE FROM lessons WHERE module_id IN (SELECT id FROM modules WHERE course_id = ?)`,
+    [id]
+  );
+  await run(`DELETE FROM modules WHERE course_id = ?`, [id]);
+  await run(`DELETE FROM enrollments WHERE course_id = ?`, [id]);
+  await run(`DELETE FROM courses WHERE id = ?`, [id]);
+  revalidatePath("/admin/courses");
+  revalidatePath("/courses");
+  redirect("/admin/courses?ok=1");
+}
+
+export async function deleteProductAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!isAdmin(user)) deny();
+  const id = Number(formData.get("id"));
+  const product = await one(`SELECT cover_path, file_path FROM products WHERE id = ?`, [id]);
+  await unlinkUpload(product?.cover_path);
+  await unlinkUpload(product?.file_path);
+  await run(`DELETE FROM reviews WHERE product_id = ?`, [id]);
+  await run(`DELETE FROM products WHERE id = ?`, [id]);
+  revalidatePath("/admin/products");
+  revalidatePath("/store");
+  redirect("/admin/products?ok=1");
+}
+
+export async function deleteSignalAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!canManageSignals(user)) deny();
+  const id = Number(formData.get("id"));
+  const signal = await one(`SELECT image_path FROM signals WHERE id = ?`, [id]);
+  await unlinkUpload(signal?.image_path);
+  await run(`DELETE FROM signals WHERE id = ?`, [id]);
+  revalidatePath("/admin/signals");
+  revalidatePath("/signals");
+  redirect("/admin/signals?ok=1");
+}
+
+const DELETABLE_FIELDS: Record<string, { table: string; field: string }> = {
+  product_cover: { table: "products", field: "cover_path" },
+  product_file: { table: "products", field: "file_path" },
+  course_cover: { table: "courses", field: "cover_path" },
+  signal_chart: { table: "signals", field: "image_path" },
+  resource_file: { table: "resources", field: "file_path" },
+  post_image: { table: "posts", field: "image_path" },
+};
+
+export async function deleteUploadAction(formData: FormData): Promise<void> {
+  const user = await staff();
+  if (!isAdmin(user)) deny();
+  const key = String(formData.get("target") || "");
+  const id = Number(formData.get("id"));
+  const entry = DELETABLE_FIELDS[key];
+  if (!entry) redirect("/admin?error=Unknown+upload.");
+  const row = await one(`SELECT ${entry.field} AS f FROM ${entry.table} WHERE id = ?`, [id]);
+  await unlinkUpload(row?.f);
+  await run(`UPDATE ${entry.table} SET ${entry.field} = NULL WHERE id = ?`, [id]);
+  revalidatePath("/admin/products");
+  revalidatePath("/admin/courses");
+  revalidatePath("/admin/signals");
+  revalidatePath("/admin/resources");
 }
 
 export async function publishSignalAction(formData: FormData): Promise<void> {
@@ -347,6 +438,8 @@ export async function moderateAction(formData: FormData): Promise<void> {
   const op = String(formData.get("op") || "");
   const id = Number(formData.get("id"));
   if (op === "delete_post") {
+    const post = await one(`SELECT image_path FROM posts WHERE id = ?`, [id]);
+    await unlinkUpload(post?.image_path);
     await run(`DELETE FROM post_likes WHERE post_id = ?`, [id]);
     await run(`DELETE FROM replies WHERE post_id = ?`, [id]);
     await run(`DELETE FROM posts WHERE id = ?`, [id]);
@@ -388,6 +481,8 @@ export async function deleteResourceAction(formData: FormData): Promise<void> {
   const staffUser = await staff();
   if (!isAdmin(staffUser)) deny();
   const id = Number(formData.get("id"));
+  const resource = await one(`SELECT file_path FROM resources WHERE id = ?`, [id]);
+  await unlinkUpload(resource?.file_path);
   await run(`DELETE FROM resources WHERE id = ?`, [id]);
   revalidatePath("/admin/resources");
   revalidatePath("/resources");

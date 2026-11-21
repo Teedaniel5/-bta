@@ -1,7 +1,13 @@
 import Image from "next/image";
 import { q } from "@/lib/db";
 import AdminNav from "../AdminNav";
-import { createProductAction, updateProductAction } from "../actions";
+import ConfirmForm from "@/components/ConfirmForm";
+import {
+  createProductAction,
+  deleteProductAction,
+  deleteUploadAction,
+  updateProductAction,
+} from "../actions";
 
 export const metadata = { title: "Admin — Products" };
 
@@ -70,7 +76,8 @@ export default async function AdminProducts({
       <div className="panel">
         <h2>All products ({products.length})</h2>
         {products.map((p) => (
-          <form className="stack" action={updateProductAction} key={String(p.id)} style={{ borderBottom: "1px solid var(--line)", paddingBottom: "1rem", marginBottom: "1rem" }}>
+          <div key={String(p.id)} style={{ borderBottom: "1px solid var(--line)", paddingBottom: "1rem", marginBottom: "1rem" }}>
+          <form className="stack" action={updateProductAction}>
             <input type="hidden" name="id" value={String(p.id)} />
             <div className="grid grid-2">
               <label className="field">
@@ -102,6 +109,26 @@ export default async function AdminProducts({
               </button>
             </div>
           </form>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+            {!!p.cover_path && (
+              <ConfirmForm
+                action={deleteUploadAction}
+                fields={{ target: "product_cover", id: String(p.id) }}
+                label="Remove cover image"
+                className="btn outline sm"
+              />
+            )}
+            {!!p.file_path && (
+              <ConfirmForm
+                action={deleteUploadAction}
+                fields={{ target: "product_file", id: String(p.id) }}
+                label="Remove product file"
+                className="btn outline sm"
+              />
+            )}
+            <ConfirmForm action={deleteProductAction} fields={{ id: String(p.id) }} label="Delete product" />
+          </div>
+          </div>
         ))}
       </div>
     </div>

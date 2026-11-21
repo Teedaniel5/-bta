@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { q } from "@/lib/db";
 import AdminNav from "../AdminNav";
+import ConfirmForm from "@/components/ConfirmForm";
 import { moderateAction } from "../actions";
 import { fmtDate } from "@/lib/files";
 
@@ -63,12 +64,11 @@ export default async function AdminCommunity({
                           {!!p.pinned ? "Unpin" : "Pin"}
                         </button>
                       </form>
-                      <form action={moderateAction}>
-                        <input type="hidden" name="id" value={String(p.id)} />
-                        <button className="btn danger sm" type="submit" name="op" value="delete_post">
-                          Delete
-                        </button>
-                      </form>
+                      <ConfirmForm
+                        action={moderateAction}
+                        fields={{ id: String(p.id), op: "delete_post" }}
+                        label="Delete"
+                      />
                       <form action={moderateAction}>
                         <input type="hidden" name="id" value={String(p.uid)} />
                         <button
