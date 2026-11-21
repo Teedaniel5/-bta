@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatComplete } from "@/lib/ai";
+import { AiError, chatComplete } from "@/lib/ai";
 import { buildMarketContext, getMarketSnapshot, parseSymbols } from "@/lib/broker";
 
 const BASE_SYSTEM = `You are the AI mentor for Brilliant Trading Academy (BTA), a forex trading academy.
@@ -58,9 +58,25 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The AI mentor is not configured yet. The site owner needs to add a free GEMINI_API_KEY (or GROQ_API_KEY) in the server environment variables.",
+            "The AI mentor is not configured yet. The site owner needs to add a free GEMINI_API_KEY (or GROQ_API_KEY) in the server environment variables, then redeploy.",
         },
         { status: 503 }
+      );
+    }
+    if (error instanceof AiError && /rejected/.test(message)) {
+      return NextResponse.json(
+        {
+          error: `AI key problem — ${message} Double-check the key in Vercel → Settings → Environment Variables (Production AND Preview), then redeploy.`,
+        },
+        { status: 502 }
+      );
+    }
+    if (error instanceof AiError && /NOT_FOUND|404/i.test(message)) {
+      return NextResponse.json(
+        {
+          error: `AI model is not available on this key — ${message}`,
+        },
+        { status: 502 }
       );
     }
     return NextResponse.json(
