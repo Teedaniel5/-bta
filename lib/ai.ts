@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest"];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
 
@@ -42,7 +42,9 @@ async function discoverGeminiModel(client: GoogleGenAI): Promise<string | null> 
   try {
     let candidate: string | null = null;
     const pager = await client.models.list({ config: { pageSize: 200 } });
+    const available: string[] = [];
     for await (const model of pager) {
+      available.push(String(model.name ?? ""));
       const name = String(model.name ?? "").replace(/^models\//, "");
       const actions = (model as { supportedActions?: string[] }).supportedActions ?? [];
       if (!actions.includes("generateContent")) continue;
@@ -50,14 +52,16 @@ async function discoverGeminiModel(client: GoogleGenAI): Promise<string | null> 
       if (name.includes("flash") && !/lite|thinking/i.test(name)) return name;
       if (!candidate && !/pro/i.test(name)) candidate = name;
     }
+    console.error("Gemini ListModels result:", available.join(", ") || "(empty)");
     return candidate;
-  } catch {
+  } catch (error) {
+    console.error("Gemini ListModels failed:", describeError(error));
     return null;
   }
 }
 
 async function callGemini(apiKey: string, system: string, messages: ChatMessage[]): Promise<string> {
-  const client = new GoogleGenAI({ apiKey });
+  const client = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1beta" } });
   let lastError = "";
   for (const model of GEMINI_MODELS) {
     try {
